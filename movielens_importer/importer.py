@@ -12,35 +12,30 @@ MOVIE_LENS_URIS = {
 class Importer:
 
     def __init__(self, dataset='small', filename=None, normalize_imdb=False):
-        self._load_from_network = filename == None
-        if self._load_from_network:
+        self._filename = filename
+        if not self._filename:
             if not dataset in MOVIE_LENS_URIS:
                 raise Exception('movielens: Unknown data set ({}) options are: "small", "full"'.format(dataset))
             self._uri = MOVIE_LENS_URIS[dataset]
             self._temp_filename = path.join(tempfile.gettempdir(), '.movielens_importer_{}.zip'.format(dataset))
-        else:
-            self._filename = filename
 
         self._normalize_imdb = normalize_imdb
-
+        self._files = {}
         self._zip = None
         self._fp = None
-        self._files = {}
         self._links = None
 
     def __del__(self):
-        if not self._zip == None:
-            self._zip.close()
-        if not self._fp == None:
-            self._fp.close()
+        if self._zip: self._zip.close()
+        if self._fp: self._fp.close()
 
     def _maybe_load_zip(self):
-        if not self._zip == None: return
-        if not self._load_from_network:
+        if self._zip: return
+        if self._filename:
             self._zip = zipfile.ZipFile(self._filename)
             return
         if path.isfile(self._temp_filename):
-            print('Loading from temp file: {}.'.format(self._hidden_filename))
+            print('Loading from temp file: {}.'.format(self._temp_filename))
             self._zip = zipfile.ZipFile(self._temp_filename)
             return
         r = requests.get(self._uri, stream=True)
@@ -101,4 +96,10 @@ class Importer:
     def zip_filename(self):
         if not self._zip:
             raise Exception('movielens: no data loaded.')
-        return self._zip.getinfo().filename
+        return self._filename if self._filename else self._temp_filename
+
+if __name__ == '__main__':
+    movielens = Importer(dataset='small', normalize_imdb=True)
+    ratings = movielens.read_file('ratings.csv')
+    print(ratings[0])
+    print(movielens.zip_filename())
