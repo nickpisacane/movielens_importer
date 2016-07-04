@@ -1,0 +1,6 @@
+#!/usr/bin/env python
+
+import argparser
+import movielens_importer
+
+ml = movielens_importer.Importer()
